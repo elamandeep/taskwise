@@ -1,7 +1,6 @@
 """
 Required functions for `models.py` and `main.py`
 """
-import time
 import uuid
 
 from rich.table import Table
@@ -35,7 +34,6 @@ def loader(desc: str):
     text = TextColumn("[progress.description]{task.description}")
     with Progress(SpinnerColumn(), text) as progress:
         progress.add_task(description=desc)
-        time.sleep(0.5)
 
 
 def display_all_tasks():

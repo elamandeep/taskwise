@@ -25,8 +25,8 @@ def greet():
     time.sleep(0.1)
     rich.print("[red]Welcome to TaskWise!")
 
-    for _ in track(range(5), description="Loading..."):
-        time.sleep(0.02)
+    for _ in track(range(2), description="Loading..."):
+        time.sleep(0.1)
 
 
 def clear_terminal():
