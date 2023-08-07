@@ -1,21 +1,10 @@
-"""
-Taskwise
-"""
-import time
-import sys
-
 import typer
 import rich
 from rich.progress import track
-from questionary import Choice, Style, select
-
-from taskwise.functions import (
-    display_all_tasks,
-    update_task,
-    insert_new_task,
-    delete_task,
-    loader
-)
+import time
+from questionary import select
+from importlib import import_module
+from models import Model
 
 
 def greet():
@@ -23,62 +12,38 @@ def greet():
     Greets users
     """
     time.sleep(0.1)
-    rich.print("[red]Welcome to TaskWise!")
+    typer.echo(rich.print("[red]Welcome to TaskWise!"))
 
-    for _ in track(range(5), description="Loading..."):
+    for _ in track(range(10), description="Loading..."):
         time.sleep(0.02)
 
 
-def clear_terminal():
+def select_theme():
     """
-    Clears the terminal
+    Lists all themes and add new theme
     """
-    print("\x1b[2J\x1b[H")
 
-
-def menu():
     """
-    Displays menu
+        Loader module import and use
     """
-    clear_terminal()
+    loader_mod = import_module("loader")
+    loader_obj = loader_mod.ThemeLoader()
 
-    custom_style = Style([
-        ("display", "fg:#f44336 bold"),
-        ("insert", "fg:#673ab7 bold"),
-        ("update", "fg:#cc5454 bold"),
-        ("delete", "fg:#f5b705 italic"),
-        ("exit", "fg:#6bf716 italic"),
-    ])
-    choices = [
-                    Choice(title=[("class:display", "Display all Tasks")],
-                           value="display"),
-                    Choice(title=[("class:insert", "Insert New Task")],
-                           value="insert"),
-                    Choice(title=[("class:update", "Update Task")],
-                           value="update"),
-                    Choice(title=[("class:delete", "Delete Task")],
-                           value="delete"),
-                    Choice(title=[("class:exit", "Exit")],
-                           value="exit"),
-               ]
-    answer = select(
-        "What do you want to do?",
-        choices=choices,
-        style=custom_style
-    ).ask()
-
-    match answer:
-        case "display":
-            display_all_tasks()
-        case "insert":
-            insert_new_task()
-        case "update":
-            update_task()
-        case "delete":
-            delete_task()
-        case "exit":
-            loader("Exiting...")
-            sys.exit()
+    """
+        Model Class imported
+    """
+    model_obj = Model()
+    stored_theme = model_obj.get_current_themes()
+    if stored_theme is not None:
+        mod = loader_obj.load_specific_theme(stored_theme[0])
+        mod.theme()
+    else:
+        typer.echo(rich.print("[red]List of themes"))
+        theme = select("select theme", choices=loader_obj.themes).ask()
+        print(theme)
+        # model_obj.update_current_theme(theme)
+        mod = loader_obj.load_specific_theme(theme)
+        mod.theme()
 
 
 def main():
@@ -86,9 +51,8 @@ def main():
     Main function
     """
     greet()
-    while True:
-        menu()
-        time.sleep(0.5)
+    print("\x1b[2J\x1b[H")
+    select_theme()
 
 
 if __name__ == "__main__":
