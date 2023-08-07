@@ -4,10 +4,16 @@ User interface used in the app
 # pylint: disable=C0415
 
 import sys
+from time import time
+from datetime import datetime
 from typing import List
 
 import colorama
 import rich
+from rich.markdown import Markdown
+from rich.console import Console
+
+from taskwise.mani_theme.pretty_date import pretty_date
 
 SELECT_MARK = "[yellow]>"
 QUESTION_MARK = "[blue]?[/]"
@@ -16,11 +22,13 @@ EXCLAMATION_MARK = '[magenta]![/]'
 CHECK_MARK = '[green]✓[/]'
 EXIT_MARK = '[bright_black]✕[/]'
 
-TASKS = [['c1', False, 't1'], ['c1', True, 't2'], ['c1', True, 't3'],
-         ['c2', True, 't1'], ['c2', False, 't2']]
+TASKS = [['c1', False, 't1', 'test task one', time()],
+         ['c1', True, 't2', 'test task two', time()],
+         ['c1', True, 't3', 'test task three', time()],
+         ['c2', True, 't1', 'test task one', time()],
+         ['c2', False, 't2', 'test task two', time()]]
 
 CLOSE_MESSAGE = "Operation cancelled."
-
 
 try:
     import msvcrt
@@ -104,7 +112,7 @@ stdout = sys.stdout
 
 def option_selector(options: List[str], message: str) -> int:
     """
-    UI Option Selector
+    UI option Selector
 
     arguments
     ---------
@@ -159,26 +167,48 @@ def option_selector(options: List[str], message: str) -> int:
 
 def display_tasks(tasks, category):
     """
-    Returns based on given filters
+    UI task viewer
+
+    arguments
+    ---------
+    tasks[list]: a list of a tasks in this category
+    category[str]: name of this category
     """
     rich.print(f'{EXCLAMATION_MARK} [bright_black]» Use arrow-keys.'
                + ' Return to toggle checkmark. Ctrl + R to delete'
                + ' selected task permanently.', flush=False)
 
     selected_task = 0
-    tasks += [[category, None, '[blue]+']]
+    tasks += [[category, None, '[blue]+', 'Add a task', None]]
+
+    console = Console()
+    additional_line_count = 0
 
     while True:
         for task_id, task in enumerate(tasks):
+            if task[4] is None:
+                date_created = ''
+            else:
+                date_created = pretty_date(
+                    datetime.fromtimestamp(task[4])
+                )
             if task not in TASKS:
                 task[0] = category
                 TASKS.append(task)
+
             if task[1] is True:
-                task = f'{CHECK_MARK} {task[2]}'
+                task = f'{CHECK_MARK} {task[2]} {date_created}'
             else:
-                task = f'  {task[2]}'
+                task = f'  {task[2]} {date_created}'
+
             if task_id == selected_task:
                 rich.print(f'{SELECT_MARK} {task}', flush=False, end='')
+                print('\n' + ' ' * 8, end='', flush=False)
+                with console.capture() as capture:
+                    console.print(Markdown(tasks[selected_task][3]), end='')
+                additional_line_count += len(capture.get().split('\n'))
+                rich.print(Markdown(tasks[selected_task][3]),
+                           flush=False, end='')
             else:
                 rich.print(f'  {task}', flush=False, end='')
             stdout.write("\n")
@@ -187,7 +217,9 @@ def display_tasks(tasks, category):
         key = getkey()
 
         if key in {UP, DOWN, DELETE}:
-            stdout.write("\033[1A\033[2K" * len(tasks))
+            stdout.write("\033[1A\033[2K" * (len(tasks) +
+                                             additional_line_count + 1))
+            additional_line_count = 0
             if key == DOWN:
                 if selected_task < len(tasks) - 1:
                     selected_task += 1
@@ -203,7 +235,10 @@ def display_tasks(tasks, category):
                     TASKS.pop(TASKS.index(tasks[selected_task]))
                     tasks.pop(selected_task)
         else:
-            stdout.write("\033[1A\033[2K" * len(tasks))
+            stdout.write("\033[1A\033[2K" * (len(tasks) +
+                                             additional_line_count + 1))
+
+            additional_line_count = 0
             stdout.flush()
             if key in '\r\n' and tasks[selected_task][1] is None:
                 if tasks[selected_task][2][-1] == '+':
@@ -215,7 +250,12 @@ def display_tasks(tasks, category):
                     if name.strip() != '' and (
                             name.strip() not in [task[2] for task in tasks]
                     ):
-                        tasks.insert(-1, [category, False, name])
+                        rich.print(f'{QUESTION_MARK} Choose an description'
+                                   + ' for this task: [bright_black]» ',
+                                   flush=False, end='')
+                        description = input(colorama.Fore.LIGHTBLACK_EX)
+                        tasks.insert(-1, [category, False, name,
+                                          description, time()])
             elif key in '\r\n':
                 TASKS[TASKS.index(tasks[selected_task])][1] = not (
                     TASKS[TASKS.index(tasks[selected_task])][1]
