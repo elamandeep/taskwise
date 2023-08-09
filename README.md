@@ -54,7 +54,7 @@ pip install requirements.txt
 
 
 ### Usage
-```
+```py
 from .taskwise import main
 
 main() # Starts the Application
